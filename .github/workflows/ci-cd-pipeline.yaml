@@ -1,0 +1,71 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: tonykimatpl/lab2
+
+jobs:
+  # Step 1: Code Testing
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    # Step 1.1: Check out the code
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Step 1.2: Set up Python and Install Dependencies for Tests
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+    - name: Run Unit Tests
+      run: |
+        pytest
+
+  # Step 2: Build the Docker Image
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    # Step 2.1: Checkout the code
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Step 2.2: Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Step 2.3: Build the Docker Image
+    - name: Build Docker Image
+      run: |
+        docker build -t $IMAGE_NAME:latest .
+
+  # Step 3: Push the Docker Image to Docker Hub
+    - name: Push Docker Image to Docker Hub
+      run: |
+        docker push $IMAGE_NAME:latest
+
+  # # Step 4: Deploy (Optional)
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #   - name: Deploy using Docker Compose
+  #     run: |
+  #       docker-compose up -d
+  #   - name: Deploy using Kubernetes
+  #     run: |
+  #       kubectl apply -f k8s-deployment.yml
